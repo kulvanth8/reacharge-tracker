@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payment & Recharge Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      width: 100%;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .delete-btn {
+      background-color: #ff4444;
+      width: auto;
+      padding: 8px;
+      margin-left: 10px;
+    }
+    .delete-btn:hover {
+      background-color: #cc0000;
+    }
+    #clearAllBtn {
+      background-color: #ff4444;
+    }
+    #clearAllBtn:hover {
+      background-color: #cc0000;
+    }
+    #search {
+      margin-top: 30px;
+      margin-bottom: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    #exportBtn {
+      background-color: #0074d9;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    #exportBtn:hover {
+      background-color: #005fa3;
+    }
+    .error {
+      color: red;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Recharge & Payment Form</h2>
+    <form id="rechargeForm">
+      <label for="name">Name of Person:</label>
+      <input type="text" id="name" required>
+
+      <label for="phone">Phone Number:</label>
+      <input type="tel" id="phone" pattern="[0-9]{10}" required>
+
+      <label for="box">Box Number:</label>
+      <input type="text" id="box" required>
+
+      <label for="months">Recharge Months & Payment:</label>
+      <textarea id="months" required></textarea>
+
+      <label for="amount">Amount Paid:</label>
+      <input type="number" id="amount" required>
+
+      <label for="balance">Remaining Balance:</label>
+      <input type="number" id="balance" required>
+
+      <button type="submit">Submit</button>
+    </form>
+
+    <p id="errorMessage" class="error"></p>
+
+    <button id="exportBtn">Export to Excel</button>
+    <button id="clearAllBtn">Clear All Data</button>
+
+    <input type="text" id="search" placeholder="Search by Name or Phone..." oninput="searchData()">
+
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Box</th>
+          <th>Recharge</th>
+          <th>Amount</th>
+          <th>Balance</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- Records will appear here -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const form = document.getElementById('rechargeForm');
+    const tableBody = document.getElementById('tableBody');
+    const errorMessage = document.getElementById('errorMessage');
+
+    function getData() {
+      return JSON.parse(localStorage.getItem("rechargeData") || "[]");
+    }
+
+    function saveData(data) {
+      localStorage.setItem("rechargeData", JSON.stringify(data));
+    }
+
+    function renderTable(data) {
+      tableBody.innerHTML = "";
+      data.forEach((entry, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${entry.name}</td>
+          <td>${entry.phone}</td>
+          <td>${entry.box}</td>
+          <td>${entry.months}</td>
+          <td>${entry.amount}</td>
+          <td>${entry.balance}</td>
+          <td><button class="delete-btn" onclick="deleteEntry(${index})">Delete</button></td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function deleteEntry(index) {
+      const data = getData();
+      data.splice(index, 1);
+      saveData(data);
+      renderTable(data);
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      errorMessage.textContent = "";
+
+      const newEntry = {
+        name: document.getElementById('name').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        box: document.getElementById('box').value.trim(),
+        months: document.getElementById('months').value.trim(),
+        amount: document.getElementById('amount').value.trim(),
+        balance: document.getElementById('balance').value.trim()
+      };
+
+      if (Object.values(newEntry).some(v => !v)) {
+        errorMessage.textContent = "Please fill in all fields.";
+        return;
+      }
+
+      const data = getData();
+      data.unshift(newEntry); // Add to top
+      saveData(data);
+      renderTable(data);
+      form.reset();
+      errorMessage.textContent = "Data saved successfully.";
+    });
+
+    function searchData() {
+      const query = document.getElementById('search').value.toLowerCase();
+      const data = getData();
+      const filtered = data.filter(entry =>
+        entry.name.toLowerCase().includes(query) ||
+        entry.phone.includes(query)
+      );
+      renderTable(filtered);
+    }
+
+    document.getElementById('clearAllBtn').addEventListener('click', () => {
+      if (confirm("Are you sure you want to delete all data?")) {
+        localStorage.removeItem("rechargeData");
+        renderTable([]);
+        errorMessage.textContent = "All data deleted.";
+      }
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const data = getData();
+      if (!data.length) {
+        errorMessage.textContent = "No data to export!";
+        return;
+      }
+
+      const csvRows = [
+        ["Name", "Phone", "Box", "Recharge", "Amount", "Balance"]
+      ];
+      data.forEach(row => {
+        csvRows.push([
+          row.name,
+          row.phone,
+          row.box,
+          row.months,
+          row.amount,
+          row.balance
+        ]);
+      });
+
+      const csvContent = csvRows.map(e => e.map(s => "${s.replace(/"/g, '""')}").join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', 'recharge_data.csv');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+
+    // Initial render
+    renderTable(getData());
+  </script>
+</body>
+</html>
